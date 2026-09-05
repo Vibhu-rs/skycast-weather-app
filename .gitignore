@@ -1,0 +1,22 @@
+# --- Secrets ---
+.env
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.venv/
+*.egg-info/
+
+# --- Logs ---
+logs/*.log
+
+# --- OS / editor junk ---
+.DS_Store
+.vscode/
+.idea/
+
+# --- Database dumps (if you ever export one) ---
+*.sql.bak
