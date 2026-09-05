@@ -1,0 +1,314 @@
+/*
+  Design direction: a flight-deck / instrument-panel feel rather than
+  a generic card kit - fitting for something displaying live
+  numeric readouts (temperature, pressure, wind). Deep atmospheric
+  navy stands in for the sky; a single warm amber accent stands in
+  for sunrise/sunset light. Space Grotesk (geometric, slightly
+  technical) carries headings and big numbers; Inter carries body
+  text, so data-dense screens stay easy to scan.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+    --bg-base: #0e1b2c;
+    --bg-panel: #16283f;
+    --bg-panel-raised: #1d3350;
+    --border-hairline: #2a3f5a;
+    --text-primary: #edf2f7;
+    --text-muted: #8ca0b3;
+    --accent-amber: #f2a65a;
+    --accent-sky: #4fc3f7;
+    --accent-error: #ef6b6b;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: linear-gradient(180deg, #0a1420 0%, #0e1b2c 45%, #142338 100%);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+}
+
+h1, h2, h3 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    margin: 0;
+}
+
+a {
+    color: var(--accent-sky);
+    text-decoration: none;
+}
+
+a:hover, a:focus-visible {
+    text-decoration: underline;
+}
+
+/* --- Accessibility: always show a visible focus ring --- */
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--accent-amber);
+    outline-offset: 2px;
+}
+
+/* --- Navbar --- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border-hairline);
+}
+
+.brand {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: 0.02em;
+}
+
+.nav-links a {
+    margin-left: 24px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.nav-links a:hover {
+    color: var(--text-primary);
+}
+
+main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+/* --- Search --- */
+.search-section form {
+    display: flex;
+    gap: 12px;
+}
+
+#city-input {
+    flex: 1;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-hairline);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+}
+
+#city-input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-section button,
+.metric-refresh {
+    background: var(--accent-amber);
+    color: #1a1206;
+    border: none;
+    border-radius: 6px;
+    padding: 14px 26px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+}
+
+.search-section button:hover {
+    background: #f5b877;
+}
+
+#loading {
+    margin-top: 24px;
+    color: var(--text-muted);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- Current weather panel --- */
+.current-card {
+    margin-top: 32px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-hairline);
+    border-radius: 8px;
+    padding: 32px;
+    /* One deliberate reveal animation on load - not scattered
+       hover/entrance effects on every element. */
+    animation: reveal 0.35s ease-out;
+}
+
+@keyframes reveal {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.current-card h2 {
+    font-size: 1.4rem;
+    font-weight: 500;
+}
+
+.current-card img {
+    width: 72px;
+    height: 72px;
+    margin: 4px 0;
+}
+
+.temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1;
+    margin: 8px 0 4px;
+}
+
+.description {
+    color: var(--text-muted);
+    text-transform: capitalize;
+    margin: 0 0 24px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1px;
+    background: var(--border-hairline);
+    border: 1px solid var(--border-hairline);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.metric {
+    background: var(--bg-panel-raised);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric span {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.metric strong {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.section-heading {
+    margin-top: 36px;
+    margin-bottom: 14px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* --- Forecast strip --- */
+.forecast-strip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.forecast-day {
+    flex: 0 0 auto;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-hairline);
+    border-radius: 6px;
+    padding: 14px 18px;
+    text-align: center;
+    min-width: 88px;
+}
+
+.forecast-day p {
+    margin: 4px 0;
+}
+
+.forecast-day img {
+    width: 40px;
+    height: 40px;
+}
+
+/* --- Radar map --- */
+.radar-map {
+    width: 100%;
+    height: 340px;
+    border-radius: 8px;
+    border: 1px solid var(--border-hairline);
+    overflow: hidden;
+}
+
+/* --- History table --- */
+.history-section h2 {
+    margin-bottom: 20px;
+    font-weight: 500;
+    font-size: 1.4rem;
+}
+
+#history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-hairline);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#history-table th,
+#history-table td {
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-hairline);
+    font-size: 0.92rem;
+}
+
+#history-table th {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+#history-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* --- Toast (error) notification --- */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--accent-error);
+    color: var(--text-primary);
+    padding: 12px 20px;
+    border-radius: 6px;
+    max-width: 90%;
+}
+
+/* --- Responsive --- */
+@media (max-width: 600px) {
+    .temp {
+        font-size: 3rem;
+    }
+    .radar-map {
+        height: 260px;
+    }
+    .navbar {
+        padding: 16px 20px;
+    }
+    main {
+        padding: 24px 16px 60px;
+    }
+}

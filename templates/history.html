@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}SkyCast - History{% endblock %}
+
+{% block content %}
+<section class="history-section">
+    <h2>Recent Searches</h2>
+    <table id="history-table">
+        <thead>
+            <tr>
+                <th>City</th>
+                <th>Temp</th>
+                <th>Humidity</th>
+                <th>Wind</th>
+                <th>Condition</th>
+                <th>When</th>
+            </tr>
+        </thead>
+        <tbody id="history-body">
+            <tr><td colspan="6">Loading...</td></tr>
+        </tbody>
+    </table>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// This page's data-loading logic is small enough (one fetch, one
+// render loop) that it doesn't need its own file in static/js/ - it's
+// kept here, next to the markup it fills in.
+fetch('/api/history?limit=50')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to load history.');
+        }
+        return response.json();
+    })
+    .then(rows => {
+        const body = document.getElementById('history-body');
+        body.innerHTML = '';
+
+        if (rows.length === 0) {
+            body.innerHTML = '<tr><td colspan="6">No searches yet. Go search a city!</td></tr>';
+            return;
+        }
+
+        rows.forEach(row => {
+            const tr = document.createElement('tr');
+            const when = new Date(row.recorded_at).toLocaleString();
+            tr.innerHTML = `
+                <td>${row.name}, ${row.country}</td>
+                <td>${Math.round(row.temperature)}&deg;C</td>
+                <td>${row.humidity}%</td>
+                <td>${row.wind_speed} m/s</td>
+                <td>${row.weather_description}</td>
+                <td>${when}</td>
+            `;
+            body.appendChild(tr);
+        });
+    })
+    .catch(() => {
+        document.getElementById('history-body').innerHTML =
+            '<tr><td colspan="6">Could not load history. Is the server running?</td></tr>';
+    });
+</script>
+{% endblock %}

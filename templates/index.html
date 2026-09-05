@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}SkyCast - Home{% endblock %}
+
+{% block content %}
+<section class="search-section">
+    <form id="search-form">
+        <input
+            type="text"
+            id="city-input"
+            placeholder="Search a city... (e.g. Delhi, Tokyo, Paris)"
+            autocomplete="off"
+            required
+        >
+        <button type="submit">Search</button>
+    </form>
+</section>
+
+<section id="loading" class="hidden">Loading weather data...</section>
+
+<section id="weather-result" class="hidden">
+    <div class="current-card">
+        <h2 id="city-name"></h2>
+        <img id="weather-icon" src="" alt="weather icon">
+        <p class="temp" id="temperature"></p>
+        <p class="description" id="description"></p>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <span>Feels like</span>
+                <strong id="feels-like"></strong>
+            </div>
+            <div class="metric">
+                <span>Humidity</span>
+                <strong id="humidity"></strong>
+            </div>
+            <div class="metric">
+                <span>Wind</span>
+                <strong id="wind"></strong>
+            </div>
+            <div class="metric">
+                <span>Pressure</span>
+                <strong id="pressure"></strong>
+            </div>
+            <div class="metric">
+                <span>Visibility</span>
+                <strong id="visibility"></strong>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="section-heading">5-Day Forecast</h3>
+    <div class="forecast-strip" id="forecast"></div>
+
+    <h3 class="section-heading">Live Precipitation Radar</h3>
+    <div id="map" class="radar-map"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}
