@@ -20,3 +20,7 @@ logs/*.log
 
 # --- Database dumps (if you ever export one) ---
 *.sql.bak
+
+# Render/runtime artifacts
+*.pem
+*.crt
