@@ -49,14 +49,16 @@ def init_pool() -> None:
     global _pool
     try:
         _pool = pooling.MySQLConnectionPool(
-            pool_name="weather_pool",
-            pool_size=5,
-            host=Config.MYSQL_HOST,
-            port=Config.MYSQL_PORT,
-            user=Config.MYSQL_USER,
-            password=Config.MYSQL_PASSWORD,
-            database=Config.MYSQL_DATABASE,
-        )
+    pool_name="weather_pool",
+    pool_size=5,
+    host=Config.MYSQL_HOST,
+    port=Config.MYSQL_PORT,
+    user=Config.MYSQL_USER,
+    password=Config.MYSQL_PASSWORD,
+    database=Config.MYSQL_DATABASE,
+    ssl_disabled=False,
+    ssl_verify_cert=False,
+)
         logger.info("MySQL connection pool created successfully.")
     except MySQLError as e:
         logger.error(f"Could not create MySQL connection pool: {e}")
