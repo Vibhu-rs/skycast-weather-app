@@ -136,10 +136,15 @@ Visit **http://localhost:5000** in your browser.
 ---
 
 ## Screenshots
-> ![Home page](static/images/home.png)
-> ![Example search result](static/images/search.png)
-> ![History page](static/images/history.png)
 
+### Home Page
+![Home page](static/images/home.png)
+
+### Search Results
+![Example search result](static/images/search.png)
+
+### Search History
+![History page](static/images/history.png)
 ---
 
 ## Design decisions worth knowing about
