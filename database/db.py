@@ -1,11 +1,40 @@
+"""
+database/db.py
+----------------
+Every line of SQL in this project lives in this one file. app.py never
+writes a query directly. Keeping SQL in one place means:
+- app.py stays focused on handling HTTP requests, not database details.
+- If MySQL were ever swapped for another database, only this file
+  would need to change.
+- All the places SQL injection could sneak in are together in one file
+  that's easy to review, instead of scattered across the codebase.
+"""
+
 import logging
-from mysql.connector import pooling
+from typing import Optional, List, Dict
+
+from mysql.connector import pooling, Error as MySQLError
+
 from config import Config
 
 logger = logging.getLogger(__name__)
+
+# A connection POOL (rather than opening a brand-new connection on
+# every request) is created once and reused. Opening a fresh TCP
+# connection to MySQL for every page load is slow, and under real
+# traffic it can exhaust MySQL's max_connections limit. pool_size=5 is
+# comfortably enough for a small app on one machine.
 _pool = None
 
+
 class DatabaseError(Exception):
+    """
+    Every function below catches MySQL's own exception types and
+    re-raises THIS exception instead. That way app.py only ever has to
+    catch one exception type to handle "something went wrong with the
+    database", instead of knowing about every possible mysql.connector
+    error class.
+    """
     pass
 
 def init_pool():
