@@ -1,3 +1,23 @@
+"""
+config.py
+---------
+Single place for every configuration value the app needs.
+
+WHY THIS FILE EXISTS (instead of writing API keys / passwords directly
+inside app.py):
+1. Security - if real credentials were typed into app.py and that file
+   got pushed to GitHub, anyone could steal your API key or DB
+   password from the public commit history.
+2. Portability - your laptop, a teammate's laptop, and a real server
+   all need different DB passwords / ports. A single config module
+   that reads environment variables lets each machine supply its own
+   values via a local ".env" file, with zero code changes.
+
+python-dotenv reads the ".env" file (which is git-ignored) and copies
+its KEY=VALUE lines into the process environment, so os.getenv() can
+see them.
+"""
+
 import os
 from dotenv import load_dotenv
 
@@ -15,9 +35,7 @@ class Config:
     MYSQL_USER = os.getenv("MYSQL_USER", "root")
     MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
     MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "weather_app")
-
-    # Debug print to check configuration values
-    print(f"--- CONFIG DEBUG --- Host: {MYSQL_HOST} | Port: {MYSQL_PORT} | DB: {MYSQL_DATABASE}")
+    MYSQL_SSL_CA_PEM = os.getenv("MYSQL_SSL_CA_PEM", "")
 
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key")
     DEBUG = os.getenv("FLASK_DEBUG", "False") == "True"

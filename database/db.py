@@ -5,6 +5,8 @@ Every line of SQL in this project lives in this one file.
 """
 
 import logging
+import os
+from pathlib import Path
 from typing import Optional, List, Dict
 
 from mysql.connector import pooling, Error as MySQLError
@@ -19,62 +21,59 @@ _pool = None
 class DatabaseError(Exception):
     pass
 
+
 def init_pool():
+    """Create the MySQL pool, using Aiven's CA certificate when configured."""
     global _pool
-
-    import os
-    import tempfile
-
-    ca_pem = os.getenv("MYSQL_SSL_CA_PEM", "").strip()
-
-    if not ca_pem:
-        raise DatabaseError(
-            "MYSQL_SSL_CA_PEM is missing. "
-            "Configure the Aiven CA certificate in Render."
-        )
-
-    ca_path = None
-
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".pem", delete=False
-        ) as ca_file:
-            ca_file.write(ca_pem.replace("\\n", "\n"))
-            ca_path = ca_file.name
+        if not all((Config.MYSQL_HOST, Config.MYSQL_USER,
+                    Config.MYSQL_PASSWORD, Config.MYSQL_DATABASE)):
+            raise DatabaseError(
+                "MySQL configuration is incomplete. Set MYSQL_HOST, MYSQL_USER, "
+                "MYSQL_PASSWORD, and MYSQL_DATABASE in the environment."
+            )
+
+        connection_options = {
+            "pool_name": "weather_pool",
+            "pool_size": 5,
+            "host": Config.MYSQL_HOST,
+            "port": int(Config.MYSQL_PORT),
+            "user": Config.MYSQL_USER,
+            "password": Config.MYSQL_PASSWORD,
+            "database": Config.MYSQL_DATABASE,
+            "ssl_disabled": False,
+            "connection_timeout": 15,
+            "use_pure": True,
+        }
+
+        ca_pem = getattr(Config, "MYSQL_SSL_CA_PEM", "").strip()
+        if ca_pem:
+            # Keep this file for the lifetime of the process: pooled connections
+            # may be created after pool initialization, so don't delete it early.
+            ca_path = Path(os.getenv("TMPDIR", "/tmp")) / "skycast-aiven-ca.pem"
+            ca_path.write_text(ca_pem.replace("\\n", "\n"), encoding="utf-8")
+            connection_options.update({
+                "ssl_ca": str(ca_path),
+                "ssl_verify_cert": True,
+                "ssl_verify_identity": True,
+            })
+        else:
+            # Aiven's SSL mode REQUIRED encrypts traffic, but certificate
+            # identity verification is enabled only when the CA is provided.
+            connection_options["ssl_verify_cert"] = False
 
         logger.info(
             "Attempting MySQL connection to %s:%s",
             Config.MYSQL_HOST,
             Config.MYSQL_PORT,
         )
-
-        _pool = pooling.MySQLConnectionPool(
-            pool_name="weather_pool",
-            pool_size=5,
-            host=Config.MYSQL_HOST,
-            port=int(Config.MYSQL_PORT),
-            user=Config.MYSQL_USER,
-            password=Config.MYSQL_PASSWORD,
-            database=Config.MYSQL_DATABASE,
-            ssl_disabled=False,
-            ssl_ca=ca_path,
-            ssl_verify_cert=True,
-            ssl_verify_identity=True,
-            connection_timeout=15,
-            use_pure=True,
-        )
-
+        _pool = pooling.MySQLConnectionPool(**connection_options)
         logger.info("MySQL connection pool created successfully!")
-
     except Exception as e:
         logger.exception("MySQL pool initialization failed")
         raise DatabaseError(
             f"Could not connect to MySQL: {type(e).__name__}: {e}"
         ) from e
-
-    finally:
-        if ca_path and os.path.exists(ca_path):
-            os.unlink(ca_path)
 
 
 def get_connection():
