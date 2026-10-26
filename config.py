@@ -29,12 +29,12 @@ class Config:
     OPENWEATHER_GEO_URL = "https://api.openweathermap.org/geo/1.0/direct"
     RAINVIEWER_API_URL = "https://api.rainviewer.com/public/weather-maps.json"
 
-    # --- MySQL (Read from Render Environment or local .env) ---
-    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+    # --- MySQL (Render Environment or local .env) ---
+    MYSQL_HOST = os.getenv("MYSQL_HOST", "").strip()
     MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
-    MYSQL_USER = os.getenv("MYSQL_USER", "root")
+    MYSQL_USER = os.getenv("MYSQL_USER", "").strip()
     MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
-    MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "weather_app")
+    MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "").strip()
     MYSQL_SSL_CA_PEM = os.getenv("MYSQL_SSL_CA_PEM", "")
 
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key")
@@ -44,3 +44,22 @@ class Config:
 def validate_config():
     if not Config.OPENWEATHER_API_KEY:
         raise RuntimeError("OPENWEATHER_API_KEY is missing.")
+
+    missing = [
+        name for name, value in {
+            "MYSQL_HOST": Config.MYSQL_HOST,
+            "MYSQL_USER": Config.MYSQL_USER,
+            "MYSQL_PASSWORD": Config.MYSQL_PASSWORD,
+            "MYSQL_DATABASE": Config.MYSQL_DATABASE,
+        }.items()
+        if not value
+    ]
+
+    if missing:
+        raise RuntimeError(
+            "Missing required environment variables: "
+            + ", ".join(missing)
+        )
+
+    if not 1 <= Config.MYSQL_PORT <= 65535:
+        raise RuntimeError("MYSQL_PORT must be between 1 and 65535.")
