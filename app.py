@@ -79,9 +79,29 @@ def register_routes(flask_app: Flask) -> None:
             # uses this distinction to decide what message to show.
             return jsonify({"error": "Please enter a city name."}), 400
 
-        place = weather_service.geocode_city(city_name)
+        # When the user picks an autocomplete suggestion, the frontend also
+        # sends that exact place's coordinates so "Springfield, Illinois"
+        # doesn't get silently swapped for a different Springfield.
+        lat = request.args.get("lat", type=float)
+        lon = request.args.get("lon", type=float)
+        if lat is not None and lon is not None:
+            place = {
+                "lat": lat,
+                "lon": lon,
+                "name": city_name,
+                "country": request.args.get("country", "??")[:10],
+            }
+        else:
+            place = weather_service.geocode_city(city_name)
         current = weather_service.get_current_weather(place["lat"], place["lon"])
         forecast = weather_service.get_forecast(place["lat"], place["lon"])
+
+        try:
+            air_quality = weather_service.get_air_quality(place["lat"], place["lon"])
+        except weather_service.WeatherAPIError as e:
+            # Air quality is a bonus: if it fails, the weather must still load.
+            logger.warning(f"Air quality unavailable: {e}")
+            air_quality = None
 
         city_id = db.get_or_create_city(
             place["name"], place["country"], place["lat"], place["lon"]
@@ -95,7 +115,14 @@ def register_routes(flask_app: Flask) -> None:
             "lon": place["lon"],
             "current": current,
             "forecast": forecast,
+            "air_quality": air_quality,
         })
+
+    @flask_app.route("/api/suggest")
+    def api_suggest():
+        """GET /api/suggest?q=lon - up to 5 matching places for autocomplete."""
+        query = request.args.get("q", "").strip()
+        return jsonify(weather_service.search_cities(query))
 
     @flask_app.route("/api/radar")
     def api_radar():

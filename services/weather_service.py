@@ -106,6 +106,114 @@ def geocode_city(city_name: str) -> dict:
     }
 
 
+def search_cities(query: str, limit: int = 5) -> list:
+    """
+    Autocomplete helper: returns up to `limit` places matching what the
+    user has typed so far, e.g. "spring" -> Springfield (Illinois, US),
+    Springfield (Missouri, US), ... Unlike geocode_city(), zero matches
+    is normal here (the user is mid-typing), so it returns [] instead of
+    raising CityNotFoundError.
+    """
+    if not query or len(query.strip()) < 2:
+        return []
+
+    params = {
+        "q": query.strip(),
+        "limit": limit,
+        "appid": Config.OPENWEATHER_API_KEY,
+    }
+
+    try:
+        response = requests.get(
+            Config.OPENWEATHER_GEO_URL,
+            params=params,
+            timeout=Config.REQUEST_TIMEOUT_SECONDS,
+        )
+    except requests.exceptions.Timeout as e:
+        raise WeatherAPIError("The weather service took too long to respond.") from e
+    except requests.exceptions.ConnectionError as e:
+        raise WeatherAPIError(
+            "Could not reach the weather service. Check your internet connection."
+        ) from e
+
+    _raise_for_common_http_errors(response)
+
+    seen = set()
+    places = []
+    for place in response.json():
+        # The API can return near-duplicates; keep one per name/state/country.
+        key = (place["name"], place.get("state"), place.get("country"))
+        if key in seen:
+            continue
+        seen.add(key)
+        places.append({
+            "name": place["name"],
+            "state": place.get("state", ""),
+            "country": place.get("country", "??"),
+            "lat": place["lat"],
+            "lon": place["lon"],
+        })
+    return places
+
+
+# US EPA AQI breakpoints (2024): (conc_low, conc_high, aqi_low, aqi_high)
+_PM25_BREAKS = [(0.0, 9.0, 0, 50), (9.1, 35.4, 51, 100), (35.5, 55.4, 101, 150),
+                (55.5, 125.4, 151, 200), (125.5, 225.4, 201, 300), (225.5, 325.4, 301, 500)]
+_PM10_BREAKS = [(0, 54, 0, 50), (55, 154, 51, 100), (155, 254, 101, 150),
+                (255, 354, 151, 200), (355, 424, 201, 300), (425, 604, 301, 500)]
+_AQI_CATEGORIES = [(50, "Good"), (100, "Moderate"), (150, "Unhealthy for sensitive groups"),
+                   (200, "Unhealthy"), (300, "Very unhealthy"), (500, "Hazardous")]
+
+
+def _sub_index(conc: float, breaks: list) -> int:
+    """Linear interpolation of one pollutant's concentration onto the AQI scale."""
+    for c_lo, c_hi, i_lo, i_hi in breaks:
+        if conc <= c_hi:
+            return round((i_hi - i_lo) / (c_hi - c_lo) * (max(conc, c_lo) - c_lo) + i_lo)
+    return 500
+
+
+def get_air_quality(lat: float, lon: float) -> dict:
+    """
+    Current air pollution for a coordinate. OpenWeatherMap only gives a
+    coarse 1-5 index, so we turn its PM2.5 / PM10 readings into the
+    widely used US AQI (0-500) - the higher of the two wins, which is
+    how the official AQI is defined. It's an estimate from modelled data.
+    """
+    params = {"lat": lat, "lon": lon, "appid": Config.OPENWEATHER_API_KEY}
+    try:
+        response = requests.get(
+            f"{Config.OPENWEATHER_BASE_URL}/air_pollution",
+            params=params,
+            timeout=Config.REQUEST_TIMEOUT_SECONDS,
+        )
+    except requests.exceptions.Timeout as e:
+        raise WeatherAPIError("The weather service took too long to respond.") from e
+    except requests.exceptions.ConnectionError as e:
+        raise WeatherAPIError(
+            "Could not reach the weather service. Check your internet connection."
+        ) from e
+
+    _raise_for_common_http_errors(response)
+
+    entries = response.json().get("list") or []
+    if not entries:
+        raise WeatherAPIError("Air quality data is not available for this location.")
+
+    comps = entries[0]["components"]
+    aqi = max(
+        _sub_index(round(comps.get("pm2_5", 0), 1), _PM25_BREAKS),
+        _sub_index(round(comps.get("pm10", 0)), _PM10_BREAKS),
+    )
+    level = next(i for i, (top, _) in enumerate(_AQI_CATEGORIES) if aqi <= top)
+    return {
+        "aqi": aqi,
+        "level": level,
+        "category": _AQI_CATEGORIES[level][1],
+        "pollutants": {k: round(comps.get(k, 0), 1) for k in ("pm2_5", "pm10", "o3", "no2", "so2", "co")},
+    }
+
+
 def get_current_weather(lat: float, lon: float) -> dict:
     """
     Fetches current conditions for a coordinate and flattens

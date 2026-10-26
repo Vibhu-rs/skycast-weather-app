@@ -3,7 +3,8 @@
 
 {% block content %}
 <section class="history-section">
-    <h2>Recent Searches</h2>
+    <h1>Recent searches</h1>
+    <div class="table-wrap">
     <table id="history-table">
         <thead>
             <tr>
@@ -19,6 +20,7 @@
             <tr><td colspan="6">Loading...</td></tr>
         </tbody>
     </table>
+    </div>
 </section>
 {% endblock %}
 
@@ -39,21 +41,21 @@ fetch('/api/history?limit=50')
         body.innerHTML = '';
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="6">No searches yet. Go search a city!</td></tr>';
+            body.innerHTML = '<tr><td colspan="6">No searches yet. Search a city on the Home page and it will show up here.</td></tr>';
             return;
         }
 
         rows.forEach(row => {
             const tr = document.createElement('tr');
             const when = new Date(row.recorded_at).toLocaleString();
-            tr.innerHTML = `
-                <td>${row.name}, ${row.country}</td>
-                <td>${Math.round(row.temperature)}&deg;C</td>
-                <td>${row.humidity}%</td>
-                <td>${row.wind_speed} m/s</td>
-                <td>${row.weather_description}</td>
-                <td>${when}</td>
-            `;
+            // textContent (not innerHTML) so stored text can never be run as HTML.
+            [`${row.name}, ${row.country}`, `${Math.round(row.temperature)}\u00B0C`,
+             `${row.humidity}%`, `${row.wind_speed} m/s`, row.weather_description, when]
+                .forEach(text => {
+                    const td = document.createElement('td');
+                    td.textContent = text;
+                    tr.appendChild(td);
+                });
             body.appendChild(tr);
         });
     })

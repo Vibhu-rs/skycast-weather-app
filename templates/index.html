@@ -2,57 +2,65 @@
 {% block title %}SkyCast - Home{% endblock %}
 
 {% block content %}
-<section class="search-section">
-    <form id="search-form">
-        <input
-            type="text"
-            id="city-input"
-            placeholder="Search a city... (e.g. Delhi, Tokyo, Paris)"
-            autocomplete="off"
-            required
-        >
-        <button type="submit">Search</button>
-    </form>
+<section class="intro" id="intro">
+    <h1>Weather in any city</h1>
+    <p>Search a city, or start with one of these.</p>
 </section>
 
-<section id="loading" class="hidden">Loading weather data...</section>
+<form id="search-form" class="search">
+    <input type="text" id="city-input" placeholder="Search a city, e.g. Delhi, Tokyo, Paris"
+           autocomplete="off" aria-label="City name" role="combobox"
+           aria-expanded="false" aria-controls="suggestions" aria-autocomplete="list" required>
+    <ul id="suggestions" class="suggestions hidden" role="listbox"></ul>
+    <button type="submit">Search</button>
+</form>
+
+<div class="chips" id="chips">
+    <button type="button" class="chip">Delhi</button>
+    <button type="button" class="chip">Mumbai</button>
+    <button type="button" class="chip">Tokyo</button>
+    <button type="button" class="chip">London</button>
+    <button type="button" class="chip">New York</button>
+</div>
+
+<p id="loading" class="loading hidden">Fetching weather…</p>
 
 <section id="weather-result" class="hidden">
-    <div class="current-card">
-        <h2 id="city-name"></h2>
-        <img id="weather-icon" src="" alt="weather icon">
-        <p class="temp" id="temperature"></p>
-        <p class="description" id="description"></p>
-
-        <div class="metrics-grid">
-            <div class="metric">
-                <span>Feels like</span>
-                <strong id="feels-like"></strong>
-            </div>
-            <div class="metric">
-                <span>Humidity</span>
-                <strong id="humidity"></strong>
-            </div>
-            <div class="metric">
-                <span>Wind</span>
-                <strong id="wind"></strong>
-            </div>
-            <div class="metric">
-                <span>Pressure</span>
-                <strong id="pressure"></strong>
-            </div>
-            <div class="metric">
-                <span>Visibility</span>
-                <strong id="visibility"></strong>
-            </div>
+    <div class="hero">
+        <div class="now">
+            <h2 id="city-name"></h2>
+            <p class="temp"><span id="temperature"></span><span class="deg">°C</span></p>
+            <p class="condition"><img id="weather-icon" src="" alt=""><span id="description"></span></p>
         </div>
+
+        <dl class="readings">
+            <div><dt>Feels like</dt><dd id="feels-like"></dd></div>
+            <div><dt>Humidity</dt><dd id="humidity"></dd></div>
+            <div><dt>Wind</dt><dd><span id="wind"></span><span id="wind-arrow" class="arrow" aria-hidden="true">↑</span></dd></div>
+            <div><dt>Pressure</dt><dd id="pressure"></dd></div>
+            <div><dt>Visibility</dt><dd id="visibility"></dd></div>
+        </dl>
     </div>
 
-    <h3 class="section-heading">5-Day Forecast</h3>
-    <div class="forecast-strip" id="forecast"></div>
+    <h3 class="section-heading">Next 5 days</h3>
+    <div class="forecast" id="forecast"></div>
 
-    <h3 class="section-heading">Live Precipitation Radar</h3>
+    <h3 class="section-heading">Air quality</h3>
+    <div id="air" class="air hidden">
+        <div class="air-main">
+            <p class="aqi"><span id="aqi-value"></span><span id="aqi-label"></span></p>
+            <div class="aqi-bar"><span id="aqi-marker"></span></div>
+            <p id="aqi-advice" class="aqi-advice"></p>
+            <p class="note">US AQI scale (0 is cleanest), estimated from fine and coarse particle levels.</p>
+        </div>
+        <dl class="readings" id="air-list"></dl>
+    </div>
+    <p id="air-missing" class="note hidden">Air quality isn't available for this location right now.</p>
+
+    <h3 class="section-heading">Rain radar</h3>
+    <p class="note">Shows where rain or snow is falling right now, as seen by weather radar. No colour means dry. <span id="radar-time"></span></p>
     <div id="map" class="radar-map"></div>
+    <div class="legend"><span>Light</span><span class="legend-bar"></span><span>Heavy</span></div>
 </section>
 {% endblock %}
 
