@@ -11,20 +11,24 @@ database as searchable history.
 
 ---
 
+## Live Demo
+- [SkyCast Demo](https://skycast-weather-app-9ala.onrender.com/)
+
+---
+
 ## Features
 
-- 🔍 **City search** — type any city name; ambiguous names are resolved
+-  **City search** — type any city name; ambiguous names are resolved
   by coordinates (geocoding), not just text matching.
-- 🌡️ **Full current conditions** — temperature, feels-like, humidity,
+-  **Full current conditions** — temperature, feels-like, humidity,
   wind speed/direction, pressure, and visibility.
-- 📅 **5-day forecast strip.**
-- 🛰️ **Live precipitation radar** — an interactive Leaflet map with a
-  real-time radar overlay (via RainViewer, no API key needed).
-- 🗄️ **Weather history in MySQL** — every search is saved with a
+-  **Live precipitation radar** — an interactive Leaflet map with a
+real-time radar overlay (via RainViewer, no API key needed).
+-  **Weather history in MySQL** — every search is saved with a
   timestamp and viewable on a dedicated `/history` page.
-- 🛡️ **Real error handling** — bad city names, API downtime, timeouts,
+-  **Real error handling** — bad city names, API downtime, timeouts,
   and database failures all return clear messages instead of crashing.
-- 🪵 **Logging** — every request and error is logged to `logs/app.log`.
+-  **Logging** — every request and error is logged to `logs/app.log`.
 
 ---
 
