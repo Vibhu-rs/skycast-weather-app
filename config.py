@@ -1,23 +1,3 @@
-"""
-config.py
----------
-Single place for every configuration value the app needs.
-
-WHY THIS FILE EXISTS (instead of writing API keys / passwords directly
-inside app.py):
-1. Security - if real credentials were typed into app.py and that file
-   got pushed to GitHub, anyone could steal your API key or DB
-   password from the public commit history.
-2. Portability - your laptop, a teammate's laptop, and a real server
-   all need different DB passwords / ports. A single config module
-   that reads environment variables lets each machine supply its own
-   values via a local ".env" file, with zero code changes.
-
-python-dotenv reads the ".env" file (which is git-ignored) and copies
-its KEY=VALUE lines into the process environment, so os.getenv() can
-see them.
-"""
-
 import os
 from dotenv import load_dotenv
 

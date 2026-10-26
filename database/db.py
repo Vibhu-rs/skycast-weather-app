@@ -19,28 +19,62 @@ _pool = None
 class DatabaseError(Exception):
     pass
 
-
 def init_pool():
     global _pool
+
+    import os
+    import tempfile
+
+    ca_pem = os.getenv("MYSQL_SSL_CA_PEM", "").strip()
+
+    if not ca_pem:
+        raise DatabaseError(
+            "MYSQL_SSL_CA_PEM is missing. "
+            "Configure the Aiven CA certificate in Render."
+        )
+
+    ca_path = None
+
     try:
-        logger.info(f"Attempting to connect to MySQL at {Config.MYSQL_HOST}:{Config.MYSQL_PORT}...")
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".pem", delete=False
+        ) as ca_file:
+            ca_file.write(ca_pem.replace("\\n", "\n"))
+            ca_path = ca_file.name
+
+        logger.info(
+            "Attempting MySQL connection to %s:%s",
+            Config.MYSQL_HOST,
+            Config.MYSQL_PORT,
+        )
+
         _pool = pooling.MySQLConnectionPool(
             pool_name="weather_pool",
             pool_size=5,
             host=Config.MYSQL_HOST,
-            port=Config.MYSQL_PORT,  # Already cast to int in config.py[cite: 6]
+            port=int(Config.MYSQL_PORT),
             user=Config.MYSQL_USER,
             password=Config.MYSQL_PASSWORD,
             database=Config.MYSQL_DATABASE,
-            # Required for Aiven SSL secure connection[cite: 11]:
             ssl_disabled=False,
-            ssl_verify_cert=False,
-            use_pure=True,  # Ensures pure Python implementation for cloud SSL handshakes
+            ssl_ca=ca_path,
+            ssl_verify_cert=True,
+            ssl_verify_identity=True,
+            connection_timeout=15,
+            use_pure=True,
         )
+
         logger.info("MySQL connection pool created successfully!")
+
     except Exception as e:
-        logger.error(f"DETAILED MYSQL ERROR: {e}")
-        raise DatabaseError(f"Could not connect to MySQL: {e}") from e
+        logger.exception("MySQL pool initialization failed")
+        raise DatabaseError(
+            f"Could not connect to MySQL: {type(e).__name__}: {e}"
+        ) from e
+
+    finally:
+        if ca_path and os.path.exists(ca_path):
+            os.unlink(ca_path)
 
 
 def get_connection():
