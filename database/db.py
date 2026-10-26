@@ -45,7 +45,7 @@ def init_pool():
             pool_name="weather_pool",
             pool_size=5,
             host=Config.MYSQL_HOST,
-            port=Config.MYSQL_PORT,
+            port=int(Config.MYSQL_PORT),  # <--- Explicitly cast to int here
             user=Config.MYSQL_USER,
             password=Config.MYSQL_PASSWORD,
             database=Config.MYSQL_DATABASE,
