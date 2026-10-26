@@ -136,15 +136,9 @@ Visit **http://localhost:5000** in your browser.
 ---
 
 ## Screenshots
-
-> Add your own screenshots here after running the app locally —
-> a search result with the current-weather panel and forecast strip,
-> the live radar map, and the history page all make good shots.
-> Save them into `static/images/` and reference them like:
->
-> `![Home page](static/images/home.png)`
->
-> `![History page](static/images/history.png)`
+> ![Home page](static/images/home.png)
+> ![Example search result](static/images/search.png)
+> ![History page](static/images/history.png)
 
 ---
 
