@@ -1,71 +1,32 @@
-"""
-database/db.py
-----------------
-Every line of SQL in this project lives in this one file. app.py never
-writes a query directly. Keeping SQL in one place means:
-- app.py stays focused on handling HTTP requests, not database details.
-- If MySQL were ever swapped for another database, only this file
-  would need to change.
-- All the places SQL injection could sneak in are together in one file
-  that's easy to review, instead of scattered across the codebase.
-"""
-
 import logging
-from typing import Optional, List, Dict
-
-from mysql.connector import pooling, Error as MySQLError
-
+from mysql.connector import pooling
 from config import Config
 
 logger = logging.getLogger(__name__)
-
-# A connection POOL (rather than opening a brand-new connection on
-# every request) is created once and reused. Opening a fresh TCP
-# connection to MySQL for every page load is slow, and under real
-# traffic it can exhaust MySQL's max_connections limit. pool_size=5 is
-# comfortably enough for a small app on one machine.
 _pool = None
 
-
 class DatabaseError(Exception):
-    """
-    Every function below catches MySQL's own exception types and
-    re-raises THIS exception instead. That way app.py only ever has to
-    catch one exception type to handle "something went wrong with the
-    database", instead of knowing about every possible mysql.connector
-    error class.
-    """
     pass
 
-
-def init_pool() -> None:
-    """
-    Creates the pool once, when the Flask app boots (called from
-    app.py's create_app()). It's deliberately NOT created at import
-    time, so that a missing/wrong .env value produces one clear error
-    at startup instead of a confusing failure the first time a request
-    happens to need the database.
-    """
+def init_pool():
     global _pool
     try:
+        logger.info(f"Attempting to connect to MySQL at {Config.MYSQL_HOST}:{Config.MYSQL_PORT}...")
         _pool = pooling.MySQLConnectionPool(
-    pool_name="weather_pool",
-    pool_size=5,
-    host=Config.MYSQL_HOST,
-    port=Config.MYSQL_PORT,
-    user=Config.MYSQL_USER,
-    password=Config.MYSQL_PASSWORD,
-    database=Config.MYSQL_DATABASE,
-    ssl_disabled=False,
-    ssl_verify_cert=False,
-)
-        logger.info("MySQL connection pool created successfully.")
-    except MySQLError as e:
-        logger.error(f"Could not create MySQL connection pool: {e}")
-        raise DatabaseError(
-            "Could not connect to MySQL. Check the MySQL credentials in "
-            ".env and make sure the MySQL server is actually running."
-        ) from e
+            pool_name="weather_pool",
+            pool_size=5,
+            host=Config.MYSQL_HOST,
+            port=Config.MYSQL_PORT,
+            user=Config.MYSQL_USER,
+            password=Config.MYSQL_PASSWORD,
+            database=Config.MYSQL_DATABASE,
+            ssl_disabled=False,
+            ssl_verify_cert=False,
+        )
+        logger.info("MySQL connection pool created successfully!")
+    except Exception as e:
+        logger.error(f"DETAILED MYSQL ERROR: {e}")
+        raise DatabaseError(f"Could not connect to MySQL: {e}") from e
 
 
 def get_connection():
