@@ -1,13 +1,7 @@
 """
 database/db.py
 ----------------
-Every line of SQL in this project lives in this one file. app.py never
-writes a query directly. Keeping SQL in one place means:
-- app.py stays focused on handling HTTP requests, not database details.
-- If MySQL were ever swapped for another database, only this file
-  would need to change.
-- All the places SQL injection could sneak in are together in one file
-  that's easy to review, instead of scattered across the codebase.
+Every line of SQL in this project lives in this one file.
 """
 
 import logging
@@ -19,23 +13,12 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
-# A connection POOL (rather than opening a brand-new connection on
-# every request) is created once and reused. Opening a fresh TCP
-# connection to MySQL for every page load is slow, and under real
-# traffic it can exhaust MySQL's max_connections limit. pool_size=5 is
-# comfortably enough for a small app on one machine.
 _pool = None
 
 
 class DatabaseError(Exception):
-    """
-    Every function below catches MySQL's own exception types and
-    re-raises THIS exception instead. That way app.py only ever has to
-    catch one exception type to handle "something went wrong with the
-    database", instead of knowing about every possible mysql.connector
-    error class.
-    """
     pass
+
 
 def init_pool():
     global _pool
@@ -45,12 +28,14 @@ def init_pool():
             pool_name="weather_pool",
             pool_size=5,
             host=Config.MYSQL_HOST,
-            port=int(Config.MYSQL_PORT),  # <--- Explicitly cast to int here
+            port=Config.MYSQL_PORT,  # Already cast to int in config.py[cite: 6]
             user=Config.MYSQL_USER,
             password=Config.MYSQL_PASSWORD,
             database=Config.MYSQL_DATABASE,
+            # Required for Aiven SSL secure connection[cite: 11]:
             ssl_disabled=False,
             ssl_verify_cert=False,
+            use_pure=True,  # Ensures pure Python implementation for cloud SSL handshakes
         )
         logger.info("MySQL connection pool created successfully!")
     except Exception as e:
@@ -59,12 +44,6 @@ def init_pool():
 
 
 def get_connection():
-    """
-    Borrows one connection from the pool. Every caller MUST close it
-    in a `finally` block (they all do, below) so it's returned to the
-    pool for reuse instead of leaking a connection MySQL thinks is
-    still busy.
-    """
     if _pool is None:
         raise DatabaseError("Database pool was never initialized.")
     try:
@@ -74,20 +53,9 @@ def get_connection():
 
 
 def get_or_create_city(name: str, country: str, lat: float, lon: float) -> int:
-    """
-    Looks up a city by (name, country). Returns its id if it already
-    exists (and bumps search_count), or inserts it if this is the
-    first time anyone has searched it.
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
-
-        # %s placeholders - NEVER an f-string or + concatenation here.
-        # The MySQL driver escapes these values itself, which is what
-        # actually prevents SQL injection. Building the query text by
-        # hand with string formatting is the #1 way real apps get
-        # SQL-injected.
         cursor.execute(
             "SELECT id FROM cities WHERE name = %s AND country = %s",
             (name, country),
@@ -103,27 +71,22 @@ def get_or_create_city(name: str, country: str, lat: float, lon: float) -> int:
         else:
             cursor.execute(
                 """INSERT INTO cities (name, country, latitude, longitude)
-                   VALUES (%s, %s, %s, %s)""",
+                    VALUES (%s, %s, %s, %s)""",
                 (name, country, lat, lon),
             )
-            city_id = cursor.lastrowid  # id MySQL just assigned the new row
+            city_id = cursor.lastrowid
 
-        conn.commit()  # nothing is actually persisted until commit() runs
+        conn.commit()
         cursor.close()
         return city_id
     except MySQLError as e:
-        conn.rollback()  # undo the half-finished transaction, don't leave it dangling
+        conn.rollback()
         raise DatabaseError(f"get_or_create_city failed: {e}") from e
     finally:
-        conn.close()  # returns the connection to the pool - does NOT destroy it
+        conn.close()
 
 
 def save_weather_record(city_id: int, weather: Dict) -> None:
-    """
-    Inserts one row into weather_records. This single function is what
-    turns every search into permanent "weather history" - it's called
-    once per successful lookup from the /api/weather route.
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -156,20 +119,9 @@ def save_weather_record(city_id: int, weather: Dict) -> None:
 
 
 def get_history(limit: int = 20, city: Optional[str] = None) -> List[Dict]:
-    """
-    Returns the most recent searches, newest first, already JOINed
-    against `cities` so the caller gets the city name/country without
-    a second round-trip query. The optional `city` filter lets the
-    same function power "show me everything" and "show me just Delhi"
-    without two separate SQL statements to maintain.
-    """
     conn = get_connection()
     try:
-        # dictionary=True makes fetchall() return {"column": value}
-        # dicts instead of plain tuples, so the Flask route can
-        # jsonify() the result directly with no manual re-mapping.
         cursor = conn.cursor(dictionary=True)
-
         base_query = """
             SELECT c.name, c.country, w.temperature, w.feels_like,
                    w.humidity, w.pressure, w.wind_speed, w.wind_direction,
