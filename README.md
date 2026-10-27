@@ -5,10 +5,6 @@ Search any city to see current conditions, a live
 precipitation radar map, and every past search saved to a MySQL
 database as searchable history.
 
-> Built as an intermediate-level project to practice: REST API
-> integration, relational database design, backend error handling,
-> and a clean Flask project structure.
-
 ---
 
 ## Live Demo
