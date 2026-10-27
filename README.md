@@ -1,7 +1,7 @@
 # SkyCast — Weather Web App
 
 A weather website built with **Flask + MySQL + OpenWeatherMap + RainViewer radar**.
-Search any city to see current conditions, a 5-day forecast, a live
+Search any city to see current conditions, a live
 precipitation radar map, and every past search saved to a MySQL
 database as searchable history.
 
